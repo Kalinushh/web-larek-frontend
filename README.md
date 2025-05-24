@@ -3,11 +3,13 @@
 Стек: HTML, SCSS, TS, Webpack
 
 Структура проекта:
+
 - src/ — исходные файлы проекта
 - src/components/ — папка с JS компонентами
 - src/components/base/ — папка с базовым кодом
 
 Важные файлы:
+
 - src/pages/index.html — HTML-файл главной страницы
 - src/types/index.ts — файл с типами
 - src/index.ts — точка входа приложения
@@ -84,7 +86,7 @@ setHidden(): void — скрыть элемент
 setDisabled(flag: boolean): void — включить/выключить элемент
 render<T>(data?: T): void — отрисовка компонента
 
- Card (наследует Component)
+Card (наследует Component)
 
 Карточка товара.
 Конструктор:
@@ -156,8 +158,8 @@ close(): void — закрыть модальное окно
 set content(value: HTMLElement | string): void — установить содержимое
 render(): void — отрисовка модального окна
 
-
 ## Установка и запуск
+
 Для установки и запуска проекта необходимо выполнить команды
 
 ```
@@ -171,6 +173,7 @@ npm run start
 yarn
 yarn start
 ```
+
 ## Сборка
 
 ```
