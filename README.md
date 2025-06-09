@@ -50,11 +50,6 @@ emit(event: string, data?: unknown): void
 trigger(event: string, callback: () => void): void
 Устанавливает триггер для события event, вызывая переданный callback при его возникновении (может использоваться для отложенного или условного срабатывания).
 
-catalog:changed	AppState -> Page	Каталог загружен, обновить представление
-basket:changed	AppState ->	Basket	Товар добавлен/удалён, обновить корзину
-preview:open	Card ->	Modal	Открыть модальное окно товара
-form:submit	Order ->	AppState / API	Отправка формы заказа
-order:complete	AppState ->	Modal / Page	Заказ завершен, очистить корзину и UI
 
 Model
 Управление данными и генерация событий об изменениях.
@@ -69,6 +64,7 @@ AppState
 catalog: IProduct[] — текущий каталог товаров
 basket: string[] — массив id товаров, добавленных в корзину
 preview: string | null — id товара, открытого в предпросмотре
+order: IOrder | null — текущие данные заказа
 events: EventEmitter
 Методы:
 setCatalog(data: IProduct[]): void — обновление каталога
@@ -123,9 +119,6 @@ Order (наследует Form)
 container: HTMLElement
 events: EventEmitter
 payment: TPayment — способ оплаты
-address: string — адрес доставки
-phone: string — телефон
-email: string — email
 
 Методы:
 select paymentMethod(value: TPayment): void — выбор способа оплаты
@@ -133,7 +126,9 @@ set address(value: string): void
 set phone(value: string): void
 set email(value: string): void
 
-При отправке формы Order вызывает методы AppState.validateAddress() и AppState.validateContacts(). Если данные некорректны — форма вызывает this.set errors([...]) и не отправляет заказ
+Форма валидирует данные на каждом изменении поля, используя AppState.validateAddress() и AppState.validateContacts().
+Кнопка отправки активируется только при полной валидности формы (this.valid = true).
+При ошибке отображаются сообщения через this.set errors([...]).
 
 Basket (наследует Component)
 Отображение корзины.
@@ -144,6 +139,13 @@ events: EventEmitter
 item: IProduct[] — элементы корзины
 selected: boolean — управление видимостью корзины
 total: number — отображение итоговой суммы
+
+Методы:
+addItem(product: IProduct): void  
+removeItem(productId: string): void  
+clear(): void  
+updateTotal(): void  
+render(): void
 
 Page (наследует Component)
 Главная страница — управление каталогом и корзиной.
@@ -169,6 +171,17 @@ open(): void — открыть модальное окно
 close(): void — закрыть модальное окно
 set content(value: HTMLElement | string): void — установить содержимое
 render(): void — отрисовка модального окна
+
+Подписка на события от AppState
+Вызов рендеров компонентов (Page, Basket, Modal, Order)
+Реакция на пользовательские действия
+Передача данных из формы в AppState
+
+catalog:changed	AppState -> Page	Каталог загружен, обновить представление
+basket:changed	AppState ->	Basket	Товар добавлен/удалён, обновить корзину
+preview:open	Card ->	Modal	Открыть модальное окно товара
+form:submit	Order ->	AppState / API	Отправка формы заказа
+order:complete	AppState ->	Modal / Page	Заказ завершен, очистить корзину и UI
 
 ## Установка и запуск
 

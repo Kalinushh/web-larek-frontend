@@ -8,10 +8,13 @@
   background-color: $primary;
   color: white;
   padding: $defaultPadding;
+  align-items: flex-start;
 
   &_full {
     flex-direction: row;
     background-color: transparent;
+    display: flex;
+    align-items: stretch;
 
     .card__title {
       flex-grow: 0;
