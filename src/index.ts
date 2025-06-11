@@ -7,93 +7,175 @@ import { Api } from './components/base/api';
 
 import { AppState } from './components/AppState';
 import { Page } from './components/Page';
+import { CardList } from './components/CardList';
+import { Card } from './components/Card';
 import { Modal } from './components/base/Modal';
 import { Basket } from './components/Basket';
 import { Order } from './components/Order';
 import { ContactsForm } from './components/ContactsForm';
 
-import type { IProduct, IOrder, IOrderForm, IContactsForm } from './types';
+import type { IProduct, ICardActions, IContactsForm, IOrder, IOrderForm } from './types';
 
 
-const events = new EventEmitter() as IEvents;
-
+const events: IEvents = new EventEmitter();
 const appState = AppState.init(events);
-
 const api = new Api(API_URL);
 
 
-const pageEl    = ensureElement<HTMLElement>('.page__wrapper');
+const modalEl = ensureElement<HTMLElement>('#modal-container');
+const pageEl = ensureElement<HTMLElement>('.page__wrapper');
 const catalogEl = ensureElement<HTMLElement>('.gallery');
-const modalEl   = ensureElement<HTMLElement>('#modal-container');
-const headerBtn = ensureElement<HTMLButtonElement>('.header__basket');
-const counterEl = ensureElement<HTMLElement>('.header__basket-counter');
+const basketBtn = ensureElement<HTMLButtonElement>('.header__basket');
+const basketCounter = ensureElement<HTMLElement>('.header__basket-counter');
 
 
-events.on<{ items: IProduct[] }>('basket:changed', ({ items }) => {
-	counterEl.textContent = String(items.length);
-});
+const modal = new Modal(modalEl, events);
+const cardList = new CardList(catalogEl);
+new Page(pageEl, events, cardList);
 
+const basket = new Basket(
+	cloneTemplate<HTMLElement>('#basket'),
+	{
+		onClick: () => events.emit('order:open'),
+		onAddToBasket: id => {
+			appState.addToBasket(id);
+			events.emit('basket:changed');
+		},
+		onRemoveFromBasket: id => {
+			appState.removeFromBasket(id);
+			events.emit('basket:changed');
+		},
+	}
+);
 
-const modal    = new Modal(modalEl, events);
-const order    = new Order(cloneTemplate<HTMLFormElement>('#order'), events);
+const order = new Order(cloneTemplate<HTMLFormElement>('#order'), events);
 const contacts = new ContactsForm(cloneTemplate<HTMLFormElement>('#contacts'), events);
-const basket   = new Basket(cloneTemplate<HTMLElement>('#basket'), {
-	onClick: () => {
 
-		modal.setContent(order.render());
-		modal.open();
+
+const actions: ICardActions = {
+	onClick: id => events.emit('preview:open', { id }),
+	onAddToBasket: id => {
+		appState.addToBasket(id);
+		events.emit('basket:changed');
 	},
-	onAddToBasket:     id => appState.addToBasket(id),
-	onRemoveFromBasket: id => appState.removeFromBasket(id),
+	onRemoveFromBasket: id => {
+		appState.removeFromBasket(id);
+		events.emit('basket:changed');
+	},
+};
+
+
+basketBtn.addEventListener('click', () => events.emit('basket:open'));
+
+
+function renderCatalog(): void {
+	const cards = appState.catalog.map((p: IProduct) =>
+		new Card(p, actions, 'catalog').render(p)
+	);
+	events.emit('cards:render', cards);
+}
+
+
+function updateBasketCounter(): void {
+	const count = appState.getBasketItems().length;
+	basketCounter.textContent = String(count);
+	basketCounter.classList.toggle('hidden', count === 0);
+}
+
+
+api.get('/product')
+	.then(res => {
+		const { items } = res as { items: IProduct[] };
+		appState.setCatalog(items);
+		renderCatalog();
+	})
+	.catch(err => console.error(err));
+
+
+events.on<{ id: string }>('preview:open', ({ id }) => {
+	const p = appState.catalog.find(x => x.id === id);
+	if (!p) return;
+	const el = new Card(p, actions, 'preview').render(p);
+	modal.setContent(el);
+	modal.open();
 });
-const page = new Page(pageEl, catalogEl, events, basket);
 
 
-headerBtn.addEventListener('click', () => {
-	events.emit('basket:open');
+events.on('basket:open', () => {
+	modal.setContent(basket.render(appState.getBasketItems()));
+	modal.open();
 });
 
 
-page.loadCatalog();
+events.on('order:open', () => {
+	modal.setContent(order.render());
+	modal.open();
+});
+
 
 events.on<IOrderForm>('form:submit', ({ payment, address }) => {
-
 	appState.setOrder({ payment, address } as IOrder);
-
 	modal.setContent(contacts.render());
 	modal.open();
 });
 
 
 events.on<IContactsForm>('contacts:submit', ({ email, phone }) => {
-	const baseOrder = appState.order;
-	if (!baseOrder) return;
+	const order = appState.order;
+	if (!order) return;
 
-	// Добавляем контакты и остальные данные
-	baseOrder.email = email;
-	baseOrder.phone = phone;
-	const orderData: IOrder = {
-		...baseOrder,
+	order.email = email;
+	order.phone = phone;
+
+	const finalOrder: IOrder = {
+		...order,
 		items: appState.basket,
 		total: appState.getTotal(),
 	};
 
-	// Сохраняем сумму до очистки корзины
-	const spent = orderData.total;
-
-	api.post('/order', orderData)
+	api.post('/order', finalOrder)
 		.then(() => {
 			appState.clearBasket();
+
 			const success = cloneTemplate<HTMLElement>('#success');
-			const desc = success.querySelector<HTMLParagraphElement>('.order-success__description')!;
-			desc.textContent = `Списано ${spent} синапсов`;
+			const description = success.querySelector<HTMLParagraphElement>('.order-success__description')!;
+			description.textContent = `Списано ${finalOrder.total} синапсов`;
+
 			const closeBtn = success.querySelector<HTMLButtonElement>('.order-success__close')!;
-			closeBtn.addEventListener('click', () => {
-				modal.close();
-			});
+			closeBtn.addEventListener('click', () => modal.close());
 
 			modal.setContent(success);
 			modal.open();
 		})
 		.catch(err => console.error('Ошибка отправки заказа:', err));
 });
+
+
+events.on<{ field: keyof IOrderForm; value: string }>('order:change', ({ field, value }) => {
+	appState.updateOrderField(field, value);
+});
+
+events.on<{ field: keyof IContactsForm; value: string }>('contacts:change', ({ field, value }) => {
+	appState.updateContactsField(field, value);
+});
+
+
+events.on<{ valid: boolean; errors: string[] }>('orderForm:validation', ({ valid, errors }) => {
+	order.valid = valid;
+	order.errors = errors;
+});
+
+events.on<{ valid: boolean; errors: string[] }>('contactsForm:validation', ({ valid, errors }) => {
+	contacts.valid = valid;
+	contacts.errors = errors;
+});
+
+
+events.on('basket:changed', () => {
+	basket.render(appState.getBasketItems());
+	updateBasketCounter();
+	renderCatalog();
+});
+
+
+updateBasketCounter();

@@ -1,5 +1,5 @@
-import { IProduct, IOrder } from '../types';
-import { EventEmitter, IEvents } from './base/events';
+import { IProduct, IOrder, IOrderForm, IContactsForm, TPayment } from '../types';
+import { IEvents } from './base/events';
 
 export class AppState {
 	private static instance: AppState;
@@ -8,6 +8,9 @@ export class AppState {
 	basket: string[] = [];
 	preview: string | null = null;
 	order: IOrder | null = null;
+
+	private touchedOrderFields: Partial<Record<keyof IOrderForm, boolean>> = {};
+	private touchedContactsFields: Partial<Record<keyof IContactsForm, boolean>> = {};
 
 	events: IEvents;
 
@@ -75,8 +78,72 @@ export class AppState {
 
 	validateContacts(email: string, phone: string): boolean {
 		const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-		const phoneValid = /^\+?[78][\\d\\s\\-\\(\\)]{10,}$/.test(phone);
+		const phoneValid = /^\+?[78][\d\s\-()]{10,}$/.test(phone);
 		return emailValid && phoneValid;
+	}
+
+	updateOrderField(field: keyof IOrderForm, value: string): void {
+		if (!this.order) {
+			this.order = {
+				payment: null as unknown as TPayment,
+				address: '',
+				items: [],
+				total: 0
+			};
+		}
+
+		this.touchedOrderFields[field] = true;
+
+		if (field === 'payment' && (value === 'online' || value === 'cash')) {
+			this.order.payment = value as TPayment;
+		} else if (field === 'address') {
+			this.order.address = value;
+		}
+
+		const paymentValid = this.order.payment === 'online' || this.order.payment === 'cash';
+		const addressValid = this.order.address.trim().length > 5;
+
+		const errors: string[] = [];
+		if (this.touchedOrderFields['payment'] && !paymentValid) {
+			errors.push('Выберите способ оплаты');
+		}
+		if (this.touchedOrderFields['address'] && !addressValid) {
+			errors.push('Введите корректный адрес (мин. 6 символов)');
+		}
+
+		const valid = paymentValid && addressValid;
+		this.events.emit('orderForm:validation', { valid, errors });
+	}
+
+	updateContactsField<K extends keyof IContactsForm>(field: K, value: IContactsForm[K]): void {
+		if (!this.order) {
+			this.order = {
+				payment: null as unknown as TPayment,
+				address: '',
+				items: [],
+				total: 0
+			};
+		}
+
+		this.order[field] = value;
+		this.touchedContactsFields[field] = true;
+
+		const email = this.order.email ?? '';
+		const phone = this.order.phone ?? '';
+
+		const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+		const phoneValid = /^\+7\d{10}$/.test(phone);
+
+		const errors: string[] = [];
+		if (this.touchedContactsFields['email'] && !emailValid) {
+			errors.push('Введите корректный Email');
+		}
+		if (this.touchedContactsFields['phone'] && !phoneValid) {
+			errors.push('Телефон должен быть в формате +7XXXXXXXXXX');
+		}
+
+		const valid = emailValid && phoneValid;
+		this.events.emit('contactsForm:validation', { valid, errors });
 	}
 }
 

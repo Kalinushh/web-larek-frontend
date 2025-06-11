@@ -44,6 +44,8 @@ export class Modal extends Component<undefined> {
 		document.body.classList.remove('no-scroll');
 	}
 
+
+
 	override render(): HTMLElement {
 		return this.container;
 	}

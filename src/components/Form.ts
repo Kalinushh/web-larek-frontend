@@ -1,12 +1,12 @@
 import { Component } from './base/Component';
-import { IEvents } from '../types';
+import type { IEvents } from '../types';
 
 export abstract class Form<T = object> extends Component<T> {
 	protected form: HTMLFormElement;
 	protected events: IEvents;
-	protected _valid = false;
 	protected _errors: string[] = [];
 	protected errorContainer: HTMLElement | null;
+
 	protected constructor(container: HTMLFormElement, events: IEvents) {
 		super(container);
 		this.form = container;
@@ -14,6 +14,8 @@ export abstract class Form<T = object> extends Component<T> {
 		this.errorContainer = this.form.querySelector('.form__errors');
 		this.form.addEventListener('input', this.onInputChange.bind(this));
 	}
+
+	private _valid = false;
 
 	get valid(): boolean {
 		return this._valid;
@@ -40,7 +42,7 @@ export abstract class Form<T = object> extends Component<T> {
 		}
 	}
 
-	protected onInputChange(_event: Event): void { //точка расширения (hook) для всех форм, унаследованных от Form.
+	protected onInputChange(_event?: Event): void {
 
 	}
 

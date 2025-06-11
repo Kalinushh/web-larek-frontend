@@ -1,7 +1,6 @@
 import { Component } from './base/Component';
 import type { IProduct, ICardActions } from '../types';
 import { cloneTemplate } from '../utils/utils';
-import { AppState } from './AppState';
 
 export class Basket extends Component<IProduct[]> {
 	protected readonly list: HTMLElement;
@@ -10,28 +9,29 @@ export class Basket extends Component<IProduct[]> {
 	protected items: HTMLElement[] = [];
 
 	private readonly actions: ICardActions;
-	private readonly appState = AppState.getInstance();
 
 	constructor(container: HTMLElement, actions: ICardActions) {
 		super(container);
 		this.actions = actions;
-		this.list        = this.container.querySelector('.basket__list') as HTMLElement;
-		this.total       = this.container.querySelector('.basket__price') as HTMLElement;
+
+		this.list = this.container.querySelector('.basket__list') as HTMLElement;
+		this.total = this.container.querySelector('.basket__price') as HTMLElement;
 		this.orderButton = this.container.querySelector('.basket__button') as HTMLButtonElement;
+
 		this.orderButton.addEventListener('click', () => {
 			this.actions.onClick('');
 		});
 	}
-	override render(products?: IProduct[]): HTMLElement {
-		const items = products ?? [];
+
+	override render(products: IProduct[] = []): HTMLElement {
 		this.list.innerHTML = '';
 		this.items = [];
 
-		items.forEach((product, index) => {
+		products.forEach((product, index) => {
 			const itemEl = cloneTemplate<HTMLElement>('#card-basket');
-			const titleEl   = itemEl.querySelector('.card__title') as HTMLElement;
-			const priceEl   = itemEl.querySelector('.card__price') as HTMLElement;
-			const indexEl   = itemEl.querySelector('.basket__item-index') as HTMLElement;
+			const titleEl = itemEl.querySelector('.card__title') as HTMLElement;
+			const priceEl = itemEl.querySelector('.card__price') as HTMLElement;
+			const indexEl = itemEl.querySelector('.basket__item-index') as HTMLElement;
 			const removeBtn = itemEl.querySelector('.basket__item-delete') as HTMLButtonElement;
 
 			titleEl.textContent = product.title;
@@ -42,14 +42,13 @@ export class Basket extends Component<IProduct[]> {
 
 			removeBtn.addEventListener('click', () => {
 				this.actions.onRemoveFromBasket(product.id);
-				this.render(this.appState.getBasketItems());
 			});
 
 			this.list.appendChild(itemEl);
 			this.items.push(itemEl);
 		});
 
-		this.updateTotal(items);
+		this.updateTotal(products);
 		return this.container;
 	}
 
