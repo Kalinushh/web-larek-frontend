@@ -183,6 +183,22 @@ preview:open	Card ->	Modal	Открыть модальное окно товар
 form:submit	Order ->	AppState / API	Отправка формы заказа
 order:complete	AppState ->	Modal / Page	Заказ завершен, очистить корзину и UI
 
+Success (наследует Component)
+Модальное окно успешного оформления заказа.
+
+container: HTMLElement
+description: HTMLParagraphElement — элемент для вывода итоговой суммы
+closeBtn: HTMLButtonElement — кнопка закрытия окна
+total: number — итоговая сумма заказа
+
+Методы:
+
+setTotal(total: number): void — устанавливает сумму заказа для отображения в окне успеха.
+
+render(): HTMLElement — отрисовывает окно успеха с итоговой суммой.
+
+onClose(handler: () => void): void — установка обработчика для кнопки закрытия окна
+
 ## Установка и запуск
 
 Для установки и запуска проекта необходимо выполнить команды

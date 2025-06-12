@@ -40,7 +40,7 @@ export class Basket extends Component<IProduct[]> {
 				: 'Бесценно';
 			indexEl.textContent = String(index + 1);
 
-			removeBtn.addEventListener('click', () => {
+			removeBtn.addEventListener('click', () => { //removeBtn — кнопка "удалить" внутри карточки товара. При клике вызывается удаление только по id этого продукта.
 				this.actions.onRemoveFromBasket(product.id);
 			});
 

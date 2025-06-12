@@ -13,6 +13,8 @@ import { Modal } from './components/base/Modal';
 import { Basket } from './components/Basket';
 import { Order } from './components/Order';
 import { ContactsForm } from './components/ContactsForm';
+import { Success } from './components/Success';
+
 
 import type { IProduct, ICardActions, IContactsForm, IOrder, IOrderForm } from './types';
 
@@ -26,12 +28,12 @@ const modalEl = ensureElement<HTMLElement>('#modal-container');
 const pageEl = ensureElement<HTMLElement>('.page__wrapper');
 const catalogEl = ensureElement<HTMLElement>('.gallery');
 const basketBtn = ensureElement<HTMLButtonElement>('.header__basket');
-const basketCounter = ensureElement<HTMLElement>('.header__basket-counter');
+const success = new Success(cloneTemplate<HTMLElement>('#success'));
 
 
 const modal = new Modal(modalEl, events);
 const cardList = new CardList(catalogEl);
-new Page(pageEl, events, cardList);
+const page = new Page(pageEl, events);
 
 const basket = new Basket(
 	cloneTemplate<HTMLElement>('#basket'),
@@ -58,7 +60,7 @@ const actions: ICardActions = {
 		appState.addToBasket(id);
 		events.emit('basket:changed');
 	},
-	onRemoveFromBasket: id => {
+	onRemoveFromBasket: id => {  //Вызывается только при клике на кнопку удаления у конкретного товара
 		appState.removeFromBasket(id);
 		events.emit('basket:changed');
 	},
@@ -72,14 +74,13 @@ function renderCatalog(): void {
 	const cards = appState.catalog.map((p: IProduct) =>
 		new Card(p, actions, 'catalog').render(p)
 	);
-	events.emit('cards:render', cards);
+	cardList.items = cards;
 }
 
 
 function updateBasketCounter(): void {
 	const count = appState.getBasketItems().length;
-	basketCounter.textContent = String(count);
-	basketCounter.classList.toggle('hidden', count === 0);
+	page.updateBasketCounter(count);
 }
 
 
@@ -136,19 +137,14 @@ events.on<IContactsForm>('contacts:submit', ({ email, phone }) => {
 	api.post('/order', finalOrder)
 		.then(() => {
 			appState.clearBasket();
-
-			const success = cloneTemplate<HTMLElement>('#success');
-			const description = success.querySelector<HTMLParagraphElement>('.order-success__description')!;
-			description.textContent = `Списано ${finalOrder.total} синапсов`;
-
-			const closeBtn = success.querySelector<HTMLButtonElement>('.order-success__close')!;
-			closeBtn.addEventListener('click', () => modal.close());
-
-			modal.setContent(success);
+			success.setTotal(finalOrder.total);
+			modal.setContent(success.render());
+			success.onClose(() => modal.close());
 			modal.open();
 		})
 		.catch(err => console.error('Ошибка отправки заказа:', err));
 });
+
 
 
 events.on<{ field: keyof IOrderForm; value: string }>('order:change', ({ field, value }) => {
@@ -174,7 +170,6 @@ events.on<{ valid: boolean; errors: string[] }>('contactsForm:validation', ({ va
 events.on('basket:changed', () => {
 	basket.render(appState.getBasketItems());
 	updateBasketCounter();
-	renderCatalog();
 });
 
 

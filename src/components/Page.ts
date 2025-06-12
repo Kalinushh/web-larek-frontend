@@ -1,21 +1,31 @@
 import { Component } from './base/Component';
 import type { IEvents } from './base/events';
-import { CardList } from './CardList';
+
 
 export class Page extends Component<object> {
-	private cardList: CardList;
+	private gallery: HTMLElement;
+	private basketCounter: HTMLElement;
 
 	constructor(
 		container: HTMLElement,
 		private readonly events: IEvents,
-		cardList: CardList
+
 	) {
 		super(container);
-		this.cardList = cardList;
 
-		this.events.on<HTMLElement[]>('cards:render', (cards) => {
-			this.cardList.items = cards;
-		});
+
+		this.gallery = container.querySelector('.gallery')!;
+		this.basketCounter = container.querySelector('.header__basket-counter')!;
+
+
+	}
+
+	updateBasketCounter(count: number): void {
+		this.basketCounter.textContent = String(count);
+		this.basketCounter.classList.toggle('hidden', count === 0);
+	}
+
+	renderCards(cards: HTMLElement[]): void {
+		this.gallery.replaceChildren(...cards);
 	}
 }
-
