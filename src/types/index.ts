@@ -53,8 +53,8 @@ export interface IContactsForm {
 // Действия для карточки
 export interface ICardActions {
 	onClick: (productId: string) => void;
-	onAddToBasket: (productId: string) => void;
-	onRemoveFromBasket: (productId: string) => void;
+	onAddToBasket?: (productId: string) => void;
+	onRemoveFromBasket?: (productId: string) => void;
 }
 
 // Подписи для кнопок в карточке

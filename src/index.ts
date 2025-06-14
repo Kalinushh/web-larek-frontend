@@ -39,10 +39,7 @@ const basket = new Basket(
 	cloneTemplate<HTMLElement>('#basket'),
 	{
 		onClick: () => events.emit('order:open'),
-		onAddToBasket: id => {
-			appState.addToBasket(id);
-			events.emit('basket:changed');
-		},
+
 		onRemoveFromBasket: id => {
 			appState.removeFromBasket(id);
 			events.emit('basket:changed');
@@ -72,7 +69,7 @@ basketBtn.addEventListener('click', () => events.emit('basket:open'));
 
 function renderCatalog(): void {
 	const cards = appState.catalog.map((p: IProduct) =>
-		new Card(p, actions, 'catalog').render(p)
+		new Card(p, { onClick: id => events.emit('preview:open', { id }) }, 'catalog').render(p)
 	);
 	cardList.items = cards;
 }
@@ -114,19 +111,18 @@ events.on('order:open', () => {
 });
 
 
-events.on<IOrderForm>('form:submit', ({ payment, address }) => {
-	appState.setOrder({ payment, address } as IOrder);
+events.on('form:submit',() => {
+
 	modal.setContent(contacts.render());
 	modal.open();
 });
 
 
-events.on<IContactsForm>('contacts:submit', ({ email, phone }) => {
+events.on('contacts:submit', () => {
 	const order = appState.order;
 	if (!order) return;
 
-	order.email = email;
-	order.phone = phone;
+
 
 	const finalOrder: IOrder = {
 		...order,
